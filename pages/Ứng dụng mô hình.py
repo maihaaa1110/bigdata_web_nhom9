@@ -3,17 +3,16 @@ import joblib
 import pandas as pd
 
 # --- Load model ---
-model_data = joblib.load("best_model (2).pkl")
+model_data = joblib.load("best_model.pkl")
 model = model_data["model"]
 numeric_cols = model_data["numeric_cols"]
 label_mapping = model_data["label_mapping"]
 best_model_name = model_data["best_model_name"]
 
 # --- Page setup ---
-st.set_page_config(page_title="DỰ ĐOÁN XU HƯỚNG THỊ TRƯỜNG", layout="wide")
-st.markdown("<h2 style='text-align:center; color:#4CAF50;'> DỰ ĐOÁN XU HƯỚNG THỊ TRƯỜNG</h2>", unsafe_allow_html=True)
+
+st.markdown("<h1 style='text-align:center;text-transform: uppercase; color:#4CAF50;'> DỰ ĐOÁN XU HƯỚNG THỊ TRƯỜNG</h1>", unsafe_allow_html=True)
 st.write(f"<p style='text-align:center; color:gray;'>Model: <b>{best_model_name}</b></p>", unsafe_allow_html=True)
-st.markdown("---")
 
 # --- 🌙 CSS nền dark blue ---
 st.markdown(
@@ -83,14 +82,44 @@ st.markdown(
     unsafe_allow_html=True
 )
 
+
+    # Tiêu đề và menu chọn dữ liệu
+st.sidebar.markdown("### Phục vụ dự đoán:")
+dashboard_option = st.sidebar.selectbox(
+    "Chọn chế độ:",
+    (
+        "Mô hình dự đoán",
+        "Xử lý chấm điểm cảm xúc",
+        "Tải dữ liệu thô ban đầu",
+    )
+)
+
+if dashboard_option == "Mô hình dự đoán":
+
+            st.markdown("""
+            <div style="display:flex; justify-content:center; margin-top:0px; margin-bottom:0px;">
+                <div style="height:2.5px; width:190px; background-color:#1E90FF; border-radius:2px;"></div>
+            </div>
+            <h2 style='text-align:center; color:#1E90FF; margin-top:0;'>HIỂN THỊ TIN TỨC GỐC</h2>
+            """, unsafe_allow_html=True)
+
+# Tiêu đề chính theo lựa chọn
+st.markdown(
+f"<h1 style='text-align: center; text-transform: uppercase;'>{dashboard_option}</h1>",
+unsafe_allow_html=True
+)
+
+# Đường ngăn cách (divider) bên dưới menu
+st.sidebar.markdown("---")
+
 # --- Chọn chế độ nhập liệu ---
-mode = st.radio("Chọn phương thức nhập liệu:", ["🔹 Nhập thủ công", "📁 Upload file dữ liệu"], horizontal=True)
+mode1, mode2 = st.tabs(["🔹 Nhập thủ công", "📁 Upload file dữ liệu"])
 st.markdown("---")
 
 # ============================================================
 # 🔹 1️⃣ Nhập thủ công
 # ============================================================
-if mode == "🔹 Nhập thủ công":
+with mode1:
     with st.form("manual_form"):
         st.markdown("### Financial Indicators")
         col1, col2, col3 = st.columns(3)
@@ -192,18 +221,17 @@ if mode == "🔹 Nhập thủ công":
 # ============================================================
 # 📁 2️⃣ Upload file dữ liệu
 # ============================================================
-else:
+with mode2:
     st.markdown("###  Upload File Dữ Liệu")
     uploaded_file = st.file_uploader("Tải file dữ liệu", type=["parquet"])
 
     if uploaded_file is not None:
         df1 = pd.read_parquet(uploaded_file)
-        st.dataframe(df1.iloc[:-1])
-        df2 = df1.copy()
+        st.dataframe(df1)
         st.write(" File đã đọc thành công!")
-        df_new = df2.dropna()
+        df_new = df1.dropna()
 
-        st.dataframe(df_new.iloc[:-1])
+        st.dataframe(df_new)
 
         # Kiểm tra cột hợp lệ
         missing_cols = [c for c in numeric_cols if c not in df_new.columns]
@@ -232,9 +260,11 @@ else:
             
                 cols_to_add = df_new.columns.difference(["Prediction", "Confidence (%)"])
                 df_to_show = df_new[["Prediction", "Confidence (%)"]].join(df_new[cols_to_add])
-                df_to_show["Prediction"] = df_to_show["Prediction"].shift(-1)  # shift lên 1 ô
-                df_to_show["Prediction"].iloc[-1] = None 
-                df_to_show=df_to_show.dropna()
+            #   df_to_show["Prediction"] = df_to_show["Prediction"].shift(-1)  # shift lên 1 ô
+             
+            #   df_to_show["Prediction"].iloc[-1] = None 
+             
+            #   df_to_show=df_to_show.dropna()
                 # Hàm highlight cột
                 def highlight_col(col):
                     return ['background-color: yellow; font-weight: bold' if col.name == "sp500_close" else '' for _ in col]
