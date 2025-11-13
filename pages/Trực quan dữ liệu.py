@@ -6,7 +6,6 @@ import seaborn as sns
 import plotly.graph_objects as go
 import plotly.express as px
 
-
 st.markdown(
     """
     <style>
@@ -203,7 +202,7 @@ def rename_columns_if_exist_clean(df: pd.DataFrame) -> pd.DataFrame:
 
 # Hàm lấy data clean
 def load_daily_parquet():
-    file_path = os.path.join("data", "daily_merged.parquet")
+    file_path = os.path.join("data", "clean", "daily_merged.parquet")
 
     # Kiểm tra file tồn tại
     if not os.path.exists(file_path):
@@ -316,6 +315,59 @@ def rename_columns_if_exist_news(df):
     existing_cols = {col: rename_col[col] for col in df.columns if col in rename_col}
     return df.rename(columns=existing_cols)
     
+# Hàm tách data tài chính và cảm xúc
+def split_finance_vs_sentiment(df):
+    """
+    Trả về:
+    - df_fin: nhóm dữ liệu tài chính (SP500, SPY, VIX, GOLD, OIL, USD Index, UUP)
+    - df_sent: nhóm dữ liệu còn lại (cảm xúc + đặc trưng NLP + metadata)
+    """
+
+    keywords = ["SP500", "SPY", "VIX", "GOLD", "OIL", "USD_INDEX", "UUP"]
+    date_col = "date"
+
+    # Nhóm tài chính
+    matched_fin_cols = [col for col in df.columns if any(k in col.upper() for k in keywords)]
+    if date_col in df.columns:
+        matched_fin_cols = [date_col] + matched_fin_cols
+
+    df_fin = df[matched_fin_cols]
+
+    # Nhóm cảm xúc & tin tức
+    df_sent_cols = [col for col in df.columns 
+                    if col not in matched_fin_cols and col.lower() != "market_direction"]
+
+    if date_col in df.columns:
+        df_sent_cols = [date_col] + df_sent_cols
+
+    df_sent = df[df_sent_cols]
+
+    return df_sent
+
+# Hàm chọn chỉ số cảm xúc sidebar
+def select_sentiment_column(df_sent):
+    st.sidebar.markdown("---")
+
+    sentiment_cols = [
+        col for col in df_sent.columns
+        if col not in ["date"]  # bỏ cột ngày
+    ]
+
+    # chọn mặc định: mean_sentiment_score nếu có
+    default = "mean_sentiment_score" if "mean_sentiment_score" in sentiment_cols else sentiment_cols[0]
+
+    selected = st.sidebar.selectbox(
+        "Chọn chỉ số cảm xúc:",
+        sentiment_cols,
+        index=sentiment_cols.index(default)
+    )
+    return selected
+
+# Hàm làm nổi bật cột cuối cùng tone xanh
+def highlight_last_col(df):
+    styles = pd.DataFrame('', index=df.index, columns=df.columns)
+    styles.iloc[:, -1] = 'background-color: #00B4D8; color: white; font-weight: bold;'
+    return styles
 # ============== 2. ĐỊNH NGHĨA HÀM TRỰC QUAN HÓA ==============
 
 # ------------------- TAB 1 ---------------------
@@ -373,8 +425,7 @@ def plot_corr_heatmap(df, columns):
     return fig
 
 # ------------------- TAB 2 ---------------------
-# Hàm 
-
+# Hàm vẽ biểu đồ đường theo thời gian
 def plot_single_timeseries_plotly(df, date_col, value_col):
     """
     Vẽ biểu đồ 1 đường theo thời gian
@@ -406,7 +457,7 @@ def plot_single_timeseries_plotly(df, date_col, value_col):
 
     return fig
 
-
+# Hàm tạo selectbox vẽ biểu đồ đường
 def filter_columns_by_selection(df1):
     """
     df1: DataFrame khi chưa đổi tên cột
@@ -446,61 +497,7 @@ def filter_columns_by_selection(df1):
 
     return filtered_cols[0]
 
-
-
-
-
-
-
-def split_finance_vs_sentiment(df):
-    """
-    Trả về:
-    - df_fin: nhóm dữ liệu tài chính (SP500, SPY, VIX, GOLD, OIL, USD Index, UUP)
-    - df_sent: nhóm dữ liệu còn lại (cảm xúc + đặc trưng NLP + metadata)
-    """
-
-    keywords = ["SP500", "SPY", "VIX", "GOLD", "OIL", "USD_INDEX", "UUP"]
-    date_col = "date"
-
-    # Nhóm tài chính
-    matched_fin_cols = [col for col in df.columns if any(k in col.upper() for k in keywords)]
-    if date_col in df.columns:
-        matched_fin_cols = [date_col] + matched_fin_cols
-
-    df_fin = df[matched_fin_cols]
-
-    # Nhóm cảm xúc & tin tức
-    df_sent_cols = [col for col in df.columns 
-                    if col not in matched_fin_cols and col.lower() != "market_direction"]
-
-    if date_col in df.columns:
-        df_sent_cols = [date_col] + df_sent_cols
-
-    df_sent = df[df_sent_cols]
-
-    return df_sent
-
-
-def select_sentiment_column(df_sent):
-    st.sidebar.markdown("---")
-
-    sentiment_cols = [
-        col for col in df_sent.columns
-        if col not in ["date"]  # bỏ cột ngày
-    ]
-
-    # chọn mặc định: mean_sentiment_score nếu có
-    default = "mean_sentiment_score" if "mean_sentiment_score" in sentiment_cols else sentiment_cols[0]
-
-    selected = st.sidebar.selectbox(
-        "Chọn chỉ số cảm xúc:",
-        sentiment_cols,
-        index=sentiment_cols.index(default)
-    )
-    return selected
-
-
-
+# Hàm vẽ biểu đồ phân phối
 def plot_sentiment_distribution_plotly(df, column):
     fig = go.Figure()
 
@@ -543,8 +540,8 @@ def tabdata():
     st.markdown(
     f"<h1 style='text-align: center; text-transform: uppercase;'>{dashboard_option}</h1>",
     unsafe_allow_html=True
-)
-
+    )
+    st.markdown("---")
     # Đường ngăn cách (divider) bên dưới menu
     st.sidebar.markdown("---")
 
@@ -563,7 +560,7 @@ def tabdata():
             ["📋 Dữ liệu chi tiết", "📈 Phân tích trực quan"],  # danh sách lựa chọn
             horizontal=True  # (tuỳ chọn, nếu bạn dùng Streamlit >=1.31)
         )
-
+        st.markdown("---")
 
 
         if tab == "📋 Dữ liệu chi tiết":
@@ -573,17 +570,24 @@ def tabdata():
         Mỗi dòng dữ liệu biểu diễn **một ngày giao dịch** của thị trường Mỹ, kết hợp giữa:
         - Thông tin tài chính từ các chỉ số chính như **S&P 500**, **Vàng**, **Dầu**, **USD Index**, **VIX**, v.v.  
         - Các **chỉ số cảm xúc tổng hợp** (sentiment) được tính toán từ hàng trăm bài viết tin tức trong cùng ngày.
-
+        
+        Cột *Xu hướng thị trường* được highlight chính là biến dự đoán của bài toán.
+                    
         ---
                         """, unsafe_allow_html=True)
             if df1_full is not None:
 
-                st.dataframe(df1_full)
+
+
+                # Áp dụng style
+                styled_df = df1_full.style.apply(lambda x: highlight_last_col(df1_full), axis=None)
+
+                # Hiển thị
+                st.dataframe(styled_df, use_container_width=True)
 
         else:
             st.markdown("""
-        Phân tích trực quan bằng lựa chọn các biến trong `Sidebar` để tính **ma trận tương quan**, khám phá mối quan hệ giữa  
-        các chỉ số tài chính và cảm xúc tin tức.
+        Phân tích trực quan bằng lựa chọn các biến trong `Sidebar` để tính **ma trận tương quan**, khám phá mối quan hệ giữa các chỉ số tài chính và cảm xúc tin tức.
                         
         ---
                         """, unsafe_allow_html=True)
@@ -605,6 +609,8 @@ def tabdata():
             ["📋 Dữ liệu chi tiết", "📈 Phân tích biến động"],  # danh sách lựa chọn
             horizontal=True
         )
+
+        st.markdown("---")
 
         if tab == "📋 Dữ liệu chi tiết": 
             st.markdown("""
@@ -676,6 +682,8 @@ def tabdata():
             horizontal=True
         )
 
+            st.markdown("---")
+
             if tab == "📋 Dữ liệu chi tiết": 
                 st.markdown("""
             Dữ liệu tin tức được **thu thập, xử lý và tổng hợp từ các nguồn truyền thông uy tín**, nhằm phản ánh **tâm lý và cảm xúc của thị trường tài chính** qua từng ngày giao dịch.  
@@ -699,7 +707,7 @@ def tabdata():
             Phần này cung cấp **biểu đồ trực quan về phân phối cảm xúc tin tức** theo từng ngày hoặc toàn bộ giai đoạn nghiên cứu.  
             Mục tiêu là giúp người dùng **nắm bắt xu hướng tâm lý thị trường** và **đánh giá mức độ lạc quan, trung lập hoặc bi quan** trong dòng thông tin tài chính.
 
-            Thông qua các **biểu đồ dạng cột*, bạn có thể:
+            Thông qua các *biểu đồ dạng cột*, bạn có thể:
 
             -  **Quan sát phân bố cảm xúc** tích cực – trung lập – tiêu cực theo thời gian.  
             -  **So sánh tỷ trọng cảm xúc** giữa các nhóm chủ đề.  
@@ -723,11 +731,10 @@ def tabdata():
         if selected_category == "Tin tức gốc":
 
             st.markdown("""
-            <div style="display:flex; justify-content:center; margin-top:0px; margin-bottom:0px;">
-                <div style="height:2.5px; width:190px; background-color:#1E90FF; border-radius:2px;"></div>
-            </div>
             <h2 style='text-align:center; color:#1E90FF; margin-top:0;'>HIỂN THỊ TIN TỨC GỐC</h2>
             """, unsafe_allow_html=True)
+
+            st.markdown("---")
 
             date_str = st.sidebar.text_input("Nhập ngày (ví dụ: 2023-01-30):", value="2023-01-01", key="txn_date")
 
@@ -735,7 +742,7 @@ def tabdata():
             if df_newss is not None:
                 st.markdown("""
             Phần này cung cấp **dữ liệu tin tức ban đầu** được thu thập từ Polygon API, bao gồm các bài báo kinh tế – tài chính xuất bản từ năm 2023 đến tháng 10/2025.  
-            Mỗi dòng dữ liệu đại diện cho ** thông tin của một bài viết được công bố trong ngày giao dịch**.
+            Mỗi dòng dữ liệu đại diện cho **thông tin của một bài viết được công bố trong ngày giao dịch**.
 
             Bộ dữ liệu bao gồm các thông tin chính:
             -  **Tiêu đề, tác giả, nguồn xuất bản và thời điểm đăng tải**.  
@@ -755,14 +762,6 @@ def tabdata():
                 df_newsss = rename_columns_if_exist_news(df_newsss)
                 st.dataframe(df_newsss)
 
-# Sidebar
-
-
-  #  st.sidebar.slider("Chọn mức độ", min_value=0, max_value=100, value=50)
-
-    # Nội dung chính
- #   st.write(f"Bạn đã chọn: {selected_category}")
-#    st.write("Đây là nội dung trang Home.")
-
+# ========== Chạy giao diện ==============
 if __name__ == '__main__':
     tabdata()

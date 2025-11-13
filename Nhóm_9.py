@@ -123,7 +123,7 @@ st.markdown(
     "<h1 style='text-align:center; font-weight:700;'>ỨNG DỤNG KỸ THUẬT BIG DATA - CLOUD COMPUTING</h1>",
     unsafe_allow_html=True
 )
-
+st.markdown("---")
 st.markdown(
     "<h2 style='text-align:center; font-weight:600; margin-top:-10px;'>DỰ ĐOÁN BIẾN ĐỘNG THỊ TRƯỜNG THÔNG QUA CHỈ SỐ TÀI CHÍNH VÀ CẢM XÚC THỊ TRƯỜNG</h2>",
     unsafe_allow_html=True
