@@ -621,7 +621,7 @@ def tabdata():
             -  **Chỉ số thị trường:** S&P 500 *(sp500_open, sp500_close, …)*
             -  **ETF theo dõi chỉ số:** SPY *(spy_open, spy_close, …)*
             -  **Chỉ số biến động:** VIX *(vix_open, vix_close, …)*
-            -  **Hàng hóa:** Vàng *(gold_*)* và Dầu *(oil_*)*
+            -  **Hàng hóa:** Vàng *(gold_)* và Dầu *(oil_)*
             -  **Tiền tệ:** USD Index và ETF UUP *(usd_index_*, uup_*)*
                         
             ---
@@ -729,6 +729,8 @@ def tabdata():
 
 
         if selected_category == "Tin tức gốc":
+
+            st.sidebar.info("Thời gian dữ liệu huấn luyện từ *2023-01-01 đến 2025-10-31* nên bạn chỉ có thể tra cứu tin tức gốc trong khoảng thời gian này")
 
             st.markdown("""
             <h2 style='text-align:center; color:#1E90FF; margin-top:0;'>HIỂN THỊ TIN TỨC GỐC</h2>
